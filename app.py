@@ -8,7 +8,18 @@ from scipy.stats import pearsonr, chi2_contingency
 from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist
 from numpy.linalg import pinv
-import econml.dml
+
+try:
+    import econml.dml
+except ImportError as e:
+    st.error("Le package econml n'est pas disponible. Vérifiez les dépendances dans requirements.txt.")
+    st.stop()
+
+try:
+    import optuna
+except ImportError as e:
+    st.error("Le package optuna n'est pas disponible. Vérifiez les dépendances dans requirements.txt.")
+    st.stop()
 from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 import io
