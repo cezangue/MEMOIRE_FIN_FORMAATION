@@ -18,7 +18,7 @@ st.title("Tableau de Bord d'Évaluation de l'Impact de l'Accès à l'Eau")
 st.header("Télécharger les Données")
 uploaded_file = st.file_uploader("Téléchargez votre fichier Excel", type=["xlsx"])
 weight_col = st.text_input("Entrez la variable de pondération", "Ponderation_Strate_region")
-filter_zone = st.selectbox("Filtrer par Zone Écologique", ["Tous"] + sorted(df['Zone ecologique'].unique().tolist()) if 'Zone ecologique' in df.columns else ["Tous"])
+filter_zone = st.selectbox("Filtrer par Zone Écologique", ["Tous"])
 
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
@@ -67,7 +67,7 @@ if uploaded_file is not None:
                     st.plotly_chart(fig)
 
             st.header("Évaluation d'Impact")
-            method = st.selectbox("Méthode", ["Double Différence"])  # Supprimé "DML" des options
+            method = st.selectbox("Méthode", ["Double Différence"])
             if method == "Double Différence":
                 if 'durée_disponibilite_acces_eau_avantH' in df.columns and 'durée_dispisponibilite_acces_eau_apresH' in df.columns:
                     Y_before = df['durée_disponibilite_acces_eau_avantH']
