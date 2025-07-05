@@ -6,5 +6,5 @@ seaborn>=0.11.0
 plotly>=5.0.0
 scipy>=1.7.0
 scikit-learn>=1.0.0
-econml==0.12.1  # Version stable testée
+econml>=0.15.1 # Version stable testée
 optuna>=2.10.0  # Ajouté comme demandé
