@@ -7,21 +7,8 @@ import plotly.express as px
 from scipy.stats import pearsonr, chi2_contingency
 from sklearn.preprocessing import StandardScaler
 from scipy.spatial.distance import cdist
-from numpy.linalg import pinv
-
-try:
-    import econml.dml
-except ImportError as e:
-    st.error("Le package econml n'est pas disponible. Vérifiez les dépendances dans requirements.txt.")
-    st.stop()
-
-try:
-    import optuna
-except ImportError as e:
-    st.error("Le package optuna n'est pas disponible. Vérifiez les dépendances dans requirements.txt.")
-    st.stop()
+from numpy.linalg import pinv, inv
 from sklearn.ensemble import GradientBoostingRegressor, GradientBoostingClassifier
-from sklearn.model_selection import train_test_split
 import io
 import warnings
 warnings.filterwarnings("ignore")
@@ -31,7 +18,7 @@ st.title("Tableau de Bord d'Évaluation de l'Impact de l'Accès à l'Eau")
 st.header("Télécharger les Données")
 uploaded_file = st.file_uploader("Téléchargez votre fichier Excel", type=["xlsx"])
 weight_col = st.text_input("Entrez la variable de pondération", "Ponderation_Strate_region")
-filter_zone = st.selectbox("Filtrer par Zone Écologique", ["Tous"])
+filter_zone = st.selectbox("Filtrer par Zone Écologique", ["Tous"] + sorted(df['Zone ecologique'].unique().tolist()) if 'Zone ecologique' in df.columns else ["Tous"])
 
 if uploaded_file is not None:
     df = pd.read_excel(uploaded_file)
@@ -80,7 +67,7 @@ if uploaded_file is not None:
                     st.plotly_chart(fig)
 
             st.header("Évaluation d'Impact")
-            method = st.selectbox("Méthode", ["Double Différence", "DML"])
+            method = st.selectbox("Méthode", ["Double Différence"])  # Supprimé "DML" des options
             if method == "Double Différence":
                 if 'durée_disponibilite_acces_eau_avantH' in df.columns and 'durée_dispisponibilite_acces_eau_apresH' in df.columns:
                     Y_before = df['durée_disponibilite_acces_eau_avantH']
@@ -161,25 +148,3 @@ if uploaded_file is not None:
                             'Poids Total': round(matched_df['weight'].sum(), 2)
                         })
                         st.table(pd.DataFrame(data))
-            elif method == "DML":
-                if 'durée_dispisponibilite_acces_eau_apresH' in df.columns and 'EAU' in df.columns:
-                    Y = df['durée_dispisponibilite_acces_eau_apresH']
-                    T = df['EAU'] == 'Non'
-                    X = df.drop(columns=['durée_disponibilite_acces_eau_avantH', 'durée_dispisponibilite_acces_eau_apresH', weight_col, 'EAU'])
-                    weights = df[weight_col]
-                    X_train, X_test, Y_train, Y_test, T_train, T_test, W_train, W_test = train_test_split(X, Y, T, weights, test_size=0.3, random_state=42)
-                    class NAGRegressor:
-                        def __init__(self): self.scaler_X = StandardScaler(); self.scaler_y = StandardScaler()
-                        def fit(self, X, y): X_scaled = self.scaler_X.fit_transform(X); y_scaled = self.scaler_y.fit_transform(y.values.reshape(-1, 1)).flatten(); self.weights = np.random.randn(X_scaled.shape[1] + 1) * 0.01; return self
-                        def predict(self, X): X_scaled = self.scaler_X.transform(X); return X_scaled @ self.weights
-                    class NAGClassifier:
-                        def __init__(self): self.scaler_X = StandardScaler()
-                        def fit(self, X, y): X_scaled = self.scaler_X.fit_transform(X); self.weights = np.random.randn(X_scaled.shape[1] + 1) * 0.01; return self
-                        def predict_proba(self, X): X_scaled = self.scaler_X.transform(X); return np.column_stack([1 - 1/(1 + np.exp(-X_scaled @ self.weights)), 1/(1 + np.exp(-X_scaled @ self.weights))])
-                    model_y = NAGRegressor()
-                    model_t = NAGClassifier()
-                    dml = econml.dml.LinearDML(model_y=model_y, model_t=model_t, discrete_treatment=True, cv=5)
-                    dml.fit(Y_train, T_train, X=X_train, sample_weight=W_train)
-                    ate = dml.ate(X_test)
-                    interval = dml.ate_interval(X_test)
-                    st.write(f"ATE estimé: {ate:.4f} heures, Intervalle: [{interval[0]:.4f}, {interval[1]:.4f}]")
